@@ -8,7 +8,7 @@ echo → 提交所有暂存代码
 git commit -m "$MSG"
 
 echo → 将代码推送至远端git仓库
-git push -u orign 2.6
+git push -u origin 2.6
 
 echo → 重新fetch最新代码
 git fetch
