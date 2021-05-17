@@ -40,7 +40,9 @@ export type CodegenResult = {
 };
 
 export function generate (
+  // ast 对象，整个 element 对象
   ast: ASTElement | void,
+  // 编译选项
   options: CompilerOptions
 ): CodegenResult {
   const state = new CodegenState(options)
