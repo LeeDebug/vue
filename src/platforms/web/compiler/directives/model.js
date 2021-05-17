@@ -11,7 +11,7 @@ let warn
 export const RANGE_TOKEN = '__r'
 export const CHECKBOX_RADIO_TOKEN = '__c'
 
-// v-model 实现原理 源码入口
+// v-model 实现原理 源码入口，面试会问到
 export default function model (
   el: ASTElement,
   dir: ASTDirective,
