@@ -421,6 +421,7 @@ export function createPatchFunction (backend) {
       checkDuplicateKeys(newCh)
     }
 
+    // 遍历新老两组节点，只要有一组遍历完（开始索引 超过 结束索引）则跳出循环
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
       if (isUndef(oldStartVnode)) {
         oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
@@ -465,6 +466,7 @@ export function createPatchFunction (backend) {
         newStartVnode = newCh[++newStartIdx]
       }
     }
+
     if (oldStartIdx > oldEndIdx) {
       refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
       addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
@@ -535,10 +537,12 @@ export function createPatchFunction (backend) {
       vnode.key === oldVnode.key &&
       (isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
     ) {
+      // 新旧节点都是静态的而且两个节点的 key 一样，并且新节点被 clone 了 或者 新节点有 v-once指令，则重用这部分节点
       vnode.componentInstance = oldVnode.componentInstance
       return
     }
 
+    // 执行组件的 prepatch 钩子
     let i
     const data = vnode.data
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
@@ -547,27 +551,37 @@ export function createPatchFunction (backend) {
 
     const oldCh = oldVnode.children
     const ch = vnode.children
+    // 全量更新新节点的属性，Vue 3.0 在这里做了很多的优化
     if (isDef(data) && isPatchable(vnode)) {
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
+
     if (isUndef(vnode.text)) {
+      // vnode 不是文本节点
       if (isDef(oldCh) && isDef(ch)) {
+        // 老孩子 和 新孩子 都存在
+        // 老孩子 不等于 新孩子；更新子节点，即 diff 算法
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
       } else if (isDef(ch)) {
+        // 老孩子 不存在，新孩子 存在
         if (process.env.NODE_ENV !== 'production') {
           checkDuplicateKeys(ch)
         }
         if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
       } else if (isDef(oldCh)) {
+        // 老孩子 存在，新孩子 不存在
         removeVnodes(elm, oldCh, 0, oldCh.length - 1)
       } else if (isDef(oldVnode.text)) {
+        // 老孩子 和 新孩子 都不存在 && 老孩子是文本节点；则将文本内容置空
         nodeOps.setTextContent(elm, '')
       }
     } else if (oldVnode.text !== vnode.text) {
+      // vnode 是文本节点，但 oldVnode 和 vnode 的文本内容不相同
       nodeOps.setTextContent(elm, vnode.text)
     }
+
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
     }
@@ -697,20 +711,36 @@ export function createPatchFunction (backend) {
     }
   }
 
+  /**
+   * vm.__patch__
+   *   1、新节点不存在，老节点存在，调用 destroy，销毁老节点
+   *   2、如果 oldVnode 是真实元素，则表示首次渲染，创建新节点，并插入 body，然后移除老节点
+   *   3、如果 oldVnode 不是真实元素，则表示更新阶段，执行 patchVnode
+   */
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    // 如果 vnode 不存在
     if (isUndef(vnode)) {
+      // 如果 oldVnode 存在，调用 destroy 方法，销毁 oldVnode
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
     }
 
+    // 是否经历了初次渲染阶段
     let isInitialPatch = false
+    // ! 需要插入到 vnode 的数组队列？
     const insertedVnodeQueue = []
 
+    // 以下情况 vnode 肯定存在
+    // 如果 oldVnode 存在
     if (isUndef(oldVnode)) {
+      // 初次渲染属性 置为 true
       // empty mount (likely as component), create new root element
       isInitialPatch = true
+      // 基于 vnode 创建整棵 DOM 树，并插入到父节点上，即 div 外的 body 标签
       createElm(vnode, insertedVnodeQueue)
     } else {
+      // 如果 oldVnode 不存在
+      // ? oldVnode 是否为真实节点
       const isRealElement = isDef(oldVnode.nodeType)
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
