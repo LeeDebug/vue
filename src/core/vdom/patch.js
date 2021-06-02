@@ -141,6 +141,14 @@ export function createPatchFunction (backend) {
     }
 
     vnode.isRootInsert = !nested // for transition enter check
+
+    /**
+     * 重点
+     * 1、如果 vnode 是一个组件，则执行 init 钩子，创建组件实例并挂载，
+     *   然后为组件执行各个模块的 create 钩子
+     *   如果组件被 keep-alive 包裹，则激活组件
+     * 2、如果是一个普通元素，则什么也不错
+     */
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
